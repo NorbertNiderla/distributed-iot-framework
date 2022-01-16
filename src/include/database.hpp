@@ -2,6 +2,9 @@
 #include <string>
 #pragma once
 
+#define RECV_MESSAGE_BUFFER_LEN (100)
+#define DEFAULT_COMMUNICATION_PORT  (IPPORT_USERRESERVED + 1300) //6300
+#define SERVER_CONNECTION_REQUEST_QUEUE    (1)
 
 using namespace std;
 
