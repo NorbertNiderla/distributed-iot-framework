@@ -16,9 +16,6 @@ int main(int argc, char* argv[])
     }
 
     boost::asio::io_service io_service;
-
-    //udp::resolver resolver(io_service);
-    //udp::resolver::query query(udp::v4(), argv[1], "daytime");
     udp::endpoint receiver_endpoint = udp::endpoint(udp::v4(),
         DEFAULT_COMMUNICATION_PORT);
 
