@@ -1,12 +1,7 @@
-testing: test clean
-test: database.o unit_testing.o
-	g++ database.o unit_testing.o -o main
+SRC_FOLDER = './src/'
 
-database.o: src/database.cpp
-	g++ -c src/database.cpp -o database.o
-
-unit_testing.o: src/test/unit_testing.cpp
-	g++ -c src/test/unit_testing.cpp -o unit_testing.o
+all:
+	g++ $(SRC_FOLDER)udp_client.cpp $(SRC_FOLDER)main.cpp -o app
 
 .PHONY: clean
 clean:
