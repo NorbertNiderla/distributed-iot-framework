@@ -1,22 +1,31 @@
 #include <string>
 #include <iostream>
 #include "include/udp_client.hpp"
+#include "include/logger.hpp"
 
 #define DEFAULT_COMMUNICATION_PORT  (6300)
 
-#define _LOG(x) (std::cout << x << "\n");
+bool static _check_input_arguments(int argc, char* argv[]){
+    if(argc != 2){ 
+        _LOG(ERROR) << "Number of additional arguments is not 1";
+        std::cout << "Input arguments:";
+        for(int i = 1; i < argc; i++)
+            std::cout << argv[i] << " ";
+        std::cout << "\n";
+        return 1;
+    }
+    return 0;
+}
 
 int main(int argc, char* argv[]){
     
-    _LOG("starting app")
-    
-    if(argc != 2){
-        std::cout << "Number of options is not 2: " << argc << "\n";
-        for(int i = 0; i < argc; i++)
-            std::cout << argv[i] << "\n";
-        return 1;
-    }
+    logger.set_logging_level(INFO);
 
+    if(_check_input_arguments(argc, argv))
+        return 1;
+
+    _LOG(INFO) << "starting app";
+    
     try{
         if(!std::string("receive").compare(std::string(argv[1]))){
             UdpClient client(DEFAULT_COMMUNICATION_PORT);
@@ -25,11 +34,11 @@ int main(int argc, char* argv[]){
             UdpClient client(DEFAULT_COMMUNICATION_PORT);
             client.send();
         } else {
-            std::cout << "Unknown option\n";
+            _LOG(ERROR) << "Unknown option\n";
         }
     }    
     catch(const std::exception &ex){
-        std::cout << ex.what();
+        _LOG(WARNING) << ex.what();
     }
     
     return 0;

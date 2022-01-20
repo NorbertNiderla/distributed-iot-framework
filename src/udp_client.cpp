@@ -1,4 +1,3 @@
-#include "include/udp_client.hpp"
 #include <sys/socket.h>
 #include <cstring>
 #include <cstdio>
@@ -6,6 +5,9 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+
+#include "include/udp_client.hpp"
+#include "include/logger.hpp"
 
 UdpClient::UdpClient(uint32_t port){
     _fd = socket(AF_INET, SOCK_DGRAM, PF_UNSPEC);
@@ -20,11 +22,11 @@ UdpClient::UdpClient(uint32_t port){
 void UdpClient::send(){
     std::chrono::seconds timespan(2);
 
-    std::string message =  std::string("some other message");    
+    std::string message =  std::string("message to other client");    
     _addr.sin_addr.s_addr = htonl(0xC0A80002);
     
     int i = 0;
-    while(i++ < 20){
+    while(i++ < 2){
         int send_return = sendto(_fd, (void*)message.data(), message.length(),
             0, (sockaddr*)&_addr, sizeof(_addr));
         
@@ -32,7 +34,7 @@ void UdpClient::send(){
             throw(std::exception());
         }
 
-        std::cout << "message sent\n";
+        _LOG(DEBUG) << "message sent";
         std::this_thread::sleep_for(timespan);
     }
 }
@@ -46,16 +48,15 @@ void UdpClient::receive_run(){
     }
 
     int i = 0;
-    while(i++ < 20){
-        std::cout << "trying to receive\n";
-            int recv_return = recv(_fd, _buffer.data(), _buffer.max_size(),
+    while(i++ < 2){
+        _LOG(DEBUG) << "trying to receive";
+        int recv_return = recv(_fd, _buffer.data(), _buffer.max_size(),
             MSG_WAITALL);
 
         if(recv_return == -1){ 
             throw std::exception();
         }
         
-        printf("%s\n", _buffer.data());
+        _LOG(INFO) << std::string("received: ") + std::string(_buffer.data());
     }
-
 }

@@ -1,18 +1,20 @@
 version: '3'
 services:
   receiver:
-    image:
-      iot_app:latest
-    command:
-      receive &
+    container_name: receiver
+    image: iot_app:latest
+    tty: true 
+    command: receive
     networks:
       static-network:
         ipv4_address: 192.168.0.2
   sender:
+    container_name: sender
     depends_on:
       - receiver
     image: iot_app:latest
-    command: send &
+    tty: true
+    command: send
     networks:
       static-network:
         ipv4_address: 192.168.0.3
