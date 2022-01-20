@@ -4,17 +4,15 @@ services:
     image:
       iot_app:latest
     command:
-      receive
+      receive &
     networks:
       static-network:
         ipv4_address: 192.168.0.2
   sender:
     depends_on:
       - receiver
-    image:
-      iot_app:latest
-    command:
-      send
+    image: iot_app:latest
+    command: send &
     networks:
       static-network:
         ipv4_address: 192.168.0.3
