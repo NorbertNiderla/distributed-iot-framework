@@ -20,7 +20,7 @@ class udp_server
 {
 public:
   udp_server(boost::asio::io_service& io_service)
-    : socket_(io_service, udp::endpoint(udp::v4(), DEFAULT_COMMUNICATION_PORT))
+    : socket_(io_service, udp::endpoint(udp::v4(), INET_PORT_LISTEN))
   {
     start_receive();
   }

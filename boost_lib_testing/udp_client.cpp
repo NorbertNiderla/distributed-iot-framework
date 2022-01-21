@@ -17,7 +17,7 @@ int main(int argc, char* argv[])
 
     boost::asio::io_service io_service;
     udp::endpoint receiver_endpoint = udp::endpoint(udp::v4(),
-        DEFAULT_COMMUNICATION_PORT);
+        INET_PORT_LISTEN);
 
     udp::socket socket(io_service);
     socket.open(udp::v4());
