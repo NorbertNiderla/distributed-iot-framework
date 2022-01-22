@@ -1,43 +1,62 @@
 #include <string>
 #include <iostream>
-#include "include/udp_client.hpp"
+#include <functional>
+
+#include "include/udp_comm.hpp"
 #include "include/logger.hpp"
+#include "include/message.hpp"
 
-#define INET_PORT_LISTEN  (6300)
-#define INET_PORT_SEND    (6301)
+#define DEFAULT_PORT  (6300)
 
-bool static _check_input_arguments(int argc, char* argv[]){
-    if(argc != 2){ 
-        _LOG(ERROR) << "Number of additional arguments is not 1";
-        std::cout << "Input arguments:";
-        for(int i = 1; i < argc; i++)
-            std::cout << argv[i] << " ";
-        std::cout << "\n";
-        return 1;
-    }
-    return 0;
+#define PROGRAM_MODE_ANSWERING      (0)
+#define PROGRAM_MODE_SINGLE_SEND    (1)
+
+static unsigned program_mode;
+static std::string default_ip_address;
+bool static _parse_input_arguments(int argc, char* argv[]){
+    switch(argc){
+        case 1:
+            _LOG(ERROR) << "Not enough input arguments";
+            break;
+        case 2:
+            if(!std::string("answering").compare(std::string(argv[1]))){
+                program_mode = PROGRAM_MODE_ANSWERING;
+                return 0;
+            }
+            _LOG(ERROR) << "Invalid input arguments";
+            break;
+        case 3:
+            if(!std::string("single").compare(std::string(argv[1]))){
+                program_mode = PROGRAM_MODE_SINGLE_SEND;
+                default_ip_address = std::string(argv[2]);
+                return 0;
+            }
+            _LOG(ERROR) << "Invalid input arguments";
+            break;
+        default:
+            _LOG(ERROR) << "Too many input arguments";
+            break;
+    }  
+    return 1;
 }
 
 int main(int argc, char* argv[]){
     
     logger.set_logging_level(DEBUG);
 
-    if(_check_input_arguments(argc, argv))
-        return 1;
+    if(_parse_input_arguments(argc, argv))
+       return 1;
 
     _LOG(INFO) << "starting app";
     
     try{
-        if(!std::string("receive").compare(std::string(argv[1]))){
-            UdpClient client(INET_PORT_LISTEN);
-            client.receive_run();
-        } else if(!std::string("send").compare(std::string(argv[1]))) {
-            UdpClient client(INET_PORT_LISTEN);
-            std::string message = "message to other client";
-            client.send(std::string("192.168.0.2"), message);
-        } else {
-            _LOG(ERROR) << "Unknown option\n";
-        }
+        MessageHandler msg_handler;
+        using namespace std::placeholders;
+        std::function<void(std::string,std::string)> cb = 
+            std::bind(&MessageHandler::handle_message, &msg_handler, std::placeholders::_1,
+                std::placeholders::_2);
+        UdpCommunicationHandler udp_handler(DEFAULT_PORT, cb);
+        udp_handler.run();
     }    
     catch(const std::exception &ex){
         _LOG(WARNING) << ex.what();
