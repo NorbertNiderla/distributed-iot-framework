@@ -16,12 +16,12 @@ Socket::Socket(){
 }
 
 // sets IpAdress to INADDR_ANY
-InetSocketAddress<sockaddr_in>::InetSocketAddress(uint32_t port){
+InetSocketAddress::InetSocketAddress(uint32_t port){
     address_ = {.sin_family = AF_INET, .sin_port = htons(port),
         .sin_addr = {.s_addr = htonl(INADDR_ANY)}};
 }
 
-void InetSocketAddress<sockaddr_in>::setIpAddress(std::string ip_address){
+void InetSocketAddress::setIpAddress(std::string ip_address){
     int ret = inet_pton(AF_INET, ip_address.c_str(), &address_.sin_addr.s_addr);
     //inet_pton() already converts address into net byte order
     if(ret != 1){
@@ -29,13 +29,12 @@ void InetSocketAddress<sockaddr_in>::setIpAddress(std::string ip_address){
     }
 }
 
-InetSocketAddress<sockaddr_in>::InetSocketAddress(uint32_t port, std::string ip_address){
+InetSocketAddress::InetSocketAddress(uint32_t port, std::string ip_address){
     address_ = {.sin_family = AF_INET, .sin_port = htons(port),
         .sin_addr = {.s_addr = htonl(INADDR_ANY)}};
     setIpAddress(ip_address);
 }
 
-template <typename Func>
 UdpCommunicationHandler::UdpCommunicationHandler(uint32_t port,
     std::function<void(std::string, std::string)> receive_callback)
         : socket_(), addr_listen_(port), addr_send_(port),
@@ -53,7 +52,7 @@ void UdpCommunicationHandler::send(std::string ip_addr, string_ptr_t message){
     //  of messages to send and receive in one moment
 }
 
-static int setNonBlocking(int fd)
+static void _setNonBlocking(int fd)
 {
     int flags;
     if (-1 == (flags = fcntl(fd, F_GETFL, 0)))
@@ -73,7 +72,7 @@ void UdpCommunicationHandler::run(){
         throw std::runtime_error("Bind failed");
     }
 
-    setNonBlocking(socket_.getFd());
+    _setNonBlocking(socket_.getFd());
 
     sockaddr_in incoming_addr;
     socklen_t incoming_addr_size = sizeof(incoming_addr);
@@ -95,8 +94,8 @@ void UdpCommunicationHandler::run(){
             //here should be a way to restart UdpHandler::run(),
             //  maybe run() should be in wrapper to catch all exceptions?
 
-            receive_callback_(std::string(buffer_.data()),
-                std::string(ip_address_ch));
+            receive_callback_(std::string(ip_address_ch), 
+                std::string(buffer_.data()));
 
             _LOG(INFO) << std::string("received: ") + std::string(buffer_.data());   
         }
