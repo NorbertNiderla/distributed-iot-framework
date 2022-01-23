@@ -48,14 +48,23 @@ int main(int argc, char* argv[]){
        return 1;
 
     _LOG(INFO) << "starting app";
-    
     try{
         MessageHandler msg_handler;
-        using namespace std::placeholders;
-        std::function<void(std::string,std::string)> cb = 
-            std::bind(&MessageHandler::handle_message, &msg_handler, std::placeholders::_1,
-                std::placeholders::_2);
-        UdpCommunicationHandler udp_handler(DEFAULT_PORT, cb);
+        std::function<void(std::string,std::string)> cb_rx = 
+            std::bind(&MessageHandler::handleMessage, &msg_handler,
+                std::placeholders::_1, std::placeholders::_2);
+        UdpCommunicationHandler udp_handler(DEFAULT_PORT, cb_rx);
+        std::function<void(std::string,std::string)> cb_tx = 
+            std::bind(&UdpCommunicationHandler::send,
+                &udp_handler, std::placeholders::_1, std::placeholders::_2);
+        msg_handler.setSendFunction(cb_tx);
+        
+        if(program_mode == PROGRAM_MODE_ANSWERING){
+        } else if(program_mode == PROGRAM_MODE_SINGLE_SEND){
+            msg_handler.setExitAfterResponseReceive(true);
+            msg_handler.queueMessage(default_ip_address, "default_message");
+        }
+        
         udp_handler.run();
     }    
     catch(const std::exception &ex){

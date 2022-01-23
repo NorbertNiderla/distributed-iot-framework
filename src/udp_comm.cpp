@@ -41,7 +41,7 @@ UdpCommunicationHandler::UdpCommunicationHandler(uint32_t port,
             receive_callback_(receive_callback){
 }
 
-void UdpCommunicationHandler::send(std::string ip_addr, string_ptr_t message){
+void UdpCommunicationHandler::send(std::string ip_addr, std::string message){
     mtx_.lock();
     string_to_send_ = message;
     addr_send_.setIpAddress(ip_addr);
@@ -105,7 +105,7 @@ void UdpCommunicationHandler::run(){
         if(something_to_send_flag_ == 1){
             mtx_.lock();
             int send_ret = sendto(socket_.getFd(),
-                (void*)string_to_send_->data(), string_to_send_->length(), 0,
+                (void*)string_to_send_.data(), string_to_send_.length(), 0,
                 addr_send_.getAddrPtr(), addr_send_.getAddrSize());
 
             something_to_send_flag_ == 0;
