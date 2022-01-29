@@ -1,4 +1,4 @@
-make
+cmake --build ./build/
 retVal=$?
 if [ $retVal -ne 0 ]; then
     echo "Error"
