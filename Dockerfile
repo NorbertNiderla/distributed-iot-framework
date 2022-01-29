@@ -1,4 +1,4 @@
 FROM ubuntu
-COPY ./app /home/
+COPY ./build/iot-communication-app /home/
 WORKDIR /home/
-ENTRYPOINT [ "./app"]
+ENTRYPOINT [ "./iot-communication-app"]

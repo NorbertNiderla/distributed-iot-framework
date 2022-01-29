@@ -15,8 +15,8 @@ Socket::Socket(){
     }
 }
 
-// sets IpAdress to INADDR_ANY
 InetSocketAddress::InetSocketAddress(uint32_t port){
+    // sets IpAdress to INADDR_ANY
     address_ = {.sin_family = AF_INET, .sin_port = htons(port),
         .sin_addr = {.s_addr = htonl(INADDR_ANY)}};
 }
@@ -50,6 +50,7 @@ void UdpCommunicationHandler::send(std::string ip_addr, std::string message){
 
     //this way does not prevent from override some messeges if there is a lot 
     //  of messages to send and receive in one moment
+    // some kind of queue should be implemented
 }
 
 static void _setNonBlocking(int fd)

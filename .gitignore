@@ -35,3 +35,5 @@
 app
 
 test/test_app
+
+build/
