@@ -15,9 +15,8 @@
 class Socket{
     private:
         int file_descriptor_;
-
     public:
-        Socket();
+        Socket(int type);
         int getFd(){ return file_descriptor_;};
 };
 
@@ -25,6 +24,7 @@ class InetSocketAddress{
     private:
         sockaddr_in address_;
     public:
+        InetSocketAddress();
         InetSocketAddress(uint32_t port); 
         InetSocketAddress(uint32_t port, std::string ip_address);
         void setIpAddress(std::string ip_address);

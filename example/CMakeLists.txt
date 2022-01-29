@@ -8,7 +8,7 @@ set (SRC_PATH ./../src/)
 set (SOURCES
     ${SRC_PATH}logger.cpp
     ${SRC_PATH}message.cpp
-    ${SRC_PATH}udp_comm.cpp
+    ${SRC_PATH}communication.cpp
     main.cpp 
     )
 
