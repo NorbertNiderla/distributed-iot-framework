@@ -43,14 +43,9 @@ UdpCommunicationHandler::UdpCommunicationHandler(uint32_t port,
 
 void UdpCommunicationHandler::send(std::string ip_addr, std::string message){
     mtx_.lock();
-    string_to_send_ = message;
-    addr_send_.setIpAddress(ip_addr);
-    something_to_send_flag_ = 1;
+    send_msg_q_.push(message);
+    send_ip_q_.push(ip_addr);
     mtx_.unlock();
-
-    //this way does not prevent from override some messeges if there is a lot 
-    //  of messages to send and receive in one moment
-    // some kind of queue should be implemented
 }
 
 static void _setNonBlocking(int fd)
@@ -103,14 +98,19 @@ void UdpCommunicationHandler::run(){
         //here should be done error checking for recvfrom
 
         //check for any messages to send
-        if(something_to_send_flag_ == 1){
+        if(send_msg_q_.size() != 0){
             mtx_.lock();
-            int send_ret = sendto(socket_.getFd(),
-                (void*)string_to_send_.data(), string_to_send_.length(), 0,
-                addr_send_.getAddrPtr(), addr_send_.getAddrSize());
-
-            something_to_send_flag_ = 0;
+            std::string msg = send_msg_q_.front();
+            std::string ip = send_ip_q_.front();
+            send_msg_q_.pop();
+            send_ip_q_.pop();
             mtx_.unlock();
+
+            addr_send_.setIpAddress(ip);
+
+            int send_ret = sendto(socket_.getFd(),
+                (void*)msg.data(), msg.length(), 0,
+                addr_send_.getAddrPtr(), addr_send_.getAddrSize());
 
             if(send_ret == -1){
                 throw(std::runtime_error("Sending failed"));

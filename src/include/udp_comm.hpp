@@ -6,6 +6,7 @@
 #include <functional>
 #include <thread>
 #include <mutex>
+#include <queue>
 
 #define MESSAGE_BUFFER_LEN (100)
 
@@ -35,10 +36,10 @@ class UdpCommunicationHandler{
         InetSocketAddress addr_listen_;
         InetSocketAddress addr_send_;
         std::array<char, MESSAGE_BUFFER_LEN> buffer_ = {};
-        std::string string_to_send_;
-        int something_to_send_flag_ = 0;
         std::function<void(std::string, std::string)> receive_callback_;
         std::mutex mtx_;
+        std::queue<std::string> send_msg_q_;
+        std::queue<std::string> send_ip_q_;
 
     
     public:

@@ -32,8 +32,4 @@
 *.app
 .vscode/settings.json
 
-app
-
-test/test_app
-
-build/
+example/build/

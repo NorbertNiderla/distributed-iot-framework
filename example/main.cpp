@@ -3,10 +3,10 @@
 #include <functional>
 #include <thread>
 
-#include "include/udp_comm.hpp"
-#include "include/logger.hpp"
-#include "include/message.hpp"
-#include "include/types.hpp"
+#include "udp_comm.hpp"
+#include "logger.hpp"
+#include "message.hpp"
+#include "types.hpp"
 
 #define DEFAULT_PORT  (6300)
 
@@ -71,7 +71,9 @@ int main(int argc, char* argv[]){
 
         if(program_mode == PROGRAM_MODE_ANSWERING){
         } else if(program_mode == PROGRAM_MODE_SINGLE_SEND){
+            msg_handler.setWaitForResponse(true);
             msg_handler.queueMessage(default_ip_address, "default_message");
+            msg_handler.queueMessage(default_ip_address, "default_message_2");
         }
         
         thread_udp_communication.join();
