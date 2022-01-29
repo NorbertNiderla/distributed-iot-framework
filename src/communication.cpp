@@ -5,7 +5,7 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 
-#include "include/udp_comm.hpp"
+#include "include/communication.hpp"
 #include "include/logger.hpp"
 
 Socket::Socket(int type){
