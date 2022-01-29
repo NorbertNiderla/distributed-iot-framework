@@ -3,7 +3,7 @@
 #include <functional>
 #include <thread>
 
-#include "udp_comm.hpp"
+#include "communication.hpp"
 #include "logger.hpp"
 #include "message.hpp"
 #include "types.hpp"

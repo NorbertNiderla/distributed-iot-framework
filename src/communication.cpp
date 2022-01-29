@@ -5,11 +5,15 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 
-#include "include/udp_comm.hpp"
+#include "include/communication.hpp"
 #include "include/logger.hpp"
 
-Socket::Socket(){
-    file_descriptor_ = socket(AF_INET, SOCK_DGRAM, PF_UNSPEC);
+Socket::Socket(int type){
+    if(type == P_UDP)
+        file_descriptor_ = socket(AF_INET, SOCK_DGRAM, PF_UNSPEC);
+    else if(type == P_TCP)
+        file_descriptor_ = socket(AF_INET, SOCK_STREAM, PF_UNSPEC);
+    
     if(file_descriptor_ == -1){
         throw(std::runtime_error("Opening socket failed"));
     }
@@ -37,9 +41,7 @@ InetSocketAddress::InetSocketAddress(uint32_t port, std::string ip_address){
 
 UdpCommunicationHandler::UdpCommunicationHandler(uint32_t port,
     std::function<void(std::string, std::string)> receive_callback)
-        : socket_(), addr_listen_(port), addr_send_(port),
-            receive_callback_(receive_callback){
-}
+        : socket_(P_UDP), receive_callback_(receive_callback), port_(port){}
 
 void UdpCommunicationHandler::send(std::string ip_addr, std::string message){
     mtx_.lock();
@@ -60,30 +62,34 @@ static void _setNonBlocking(int fd)
 }     
 
 void UdpCommunicationHandler::run(){
+
+    InetSocketAddress listen_addr(port_);
+    int bind_ret = bind(socket_.getFd(), listen_addr.getAddrPtr(), 
+        listen_addr.getAddrSize());
     
-    int bind_ret = bind(socket_.getFd(), addr_listen_.getAddrPtr(), 
-        addr_listen_.getAddrSize());
-    
-    if(bind_ret == -1){
+    if(bind_ret == -1)
         throw std::runtime_error("Bind failed");
-    }
 
     _setNonBlocking(socket_.getFd());
 
-    sockaddr_in incoming_addr;
-    socklen_t incoming_addr_size = sizeof(incoming_addr);
+    socklen_t incoming_addr_size = sizeof(listen_addr);
+
+    InetSocketAddress send_addr(port_);
 
     while(true){
         int recv_ret = recvfrom(socket_.getFd(), buffer_.data(),
-            buffer_.max_size(),MSG_WAITALL, (sockaddr*)&incoming_addr,
+            buffer_.max_size(),MSG_WAITALL, listen_addr.getAddrPtr(),
             &incoming_addr_size);
 
         if(recv_ret != -1){ 
             //received something
             _LOG(DEBUG) << "received something";
+            
             char ip_address_ch[INET_ADDRSTRLEN];
+            
             const char* conv_ret = inet_ntop(AF_INET,
-                &incoming_addr.sin_addr.s_addr,ip_address_ch, INET_ADDRSTRLEN);
+                listen_addr.getSAddrPtr(),ip_address_ch, INET_ADDRSTRLEN);
+            
             if(conv_ret == nullptr){
                 throw(std::runtime_error("Conversion of IpAddress to string interpretation failed"));
             }
@@ -106,11 +112,12 @@ void UdpCommunicationHandler::run(){
             send_ip_q_.pop();
             mtx_.unlock();
 
-            addr_send_.setIpAddress(ip);
+
+            send_addr.setIpAddress(ip);
 
             int send_ret = sendto(socket_.getFd(),
                 (void*)msg.data(), msg.length(), 0,
-                addr_send_.getAddrPtr(), addr_send_.getAddrSize());
+                send_addr.getAddrPtr(), send_addr.getAddrSize());
 
             if(send_ret == -1){
                 throw(std::runtime_error("Sending failed"));
