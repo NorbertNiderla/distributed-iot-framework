@@ -9,9 +9,9 @@
 #include "include/logger.hpp"
 
 Socket::Socket(int type){
-    if(type == P_UDP)
+    if(type == PROTOCOL_UDP)
         file_descriptor_ = socket(AF_INET, SOCK_DGRAM, PF_UNSPEC);
-    else if(type == P_TCP)
+    else if(type == PROTOCOL_TCP)
         file_descriptor_ = socket(AF_INET, SOCK_STREAM, PF_UNSPEC);
     
     if(file_descriptor_ == -1){
@@ -41,13 +41,10 @@ InetSocketAddress::InetSocketAddress(uint32_t port, std::string ip_address){
 
 UdpCommunicationHandler::UdpCommunicationHandler(uint32_t port,
     std::function<void(std::string, std::string)> receive_callback)
-        : socket_(P_UDP), receive_callback_(receive_callback), port_(port){}
+        : socket_(PROTOCOL_UDP), receive_callback_(receive_callback), port_(port){}
 
 void UdpCommunicationHandler::send(std::string ip_addr, std::string message){
-    mtx_.lock();
-    send_msg_q_.push(message);
-    send_ip_q_.push(ip_addr);
-    mtx_.unlock();
+    sending_queue_.pushToSend(ip_addr, message);
 }
 
 static void _setNonBlocking(int fd)
@@ -72,9 +69,10 @@ void UdpCommunicationHandler::run(){
 
     _setNonBlocking(socket_.getFd());
 
-    socklen_t incoming_addr_size = sizeof(listen_addr);
-
+    socklen_t incoming_addr_size = listen_addr.getAddrSize();
     InetSocketAddress send_addr(port_);
+    std::string msg;
+    std::string ip;
 
     while(true){
         int recv_ret = recvfrom(socket_.getFd(), buffer_.data(),
@@ -104,14 +102,7 @@ void UdpCommunicationHandler::run(){
         //here should be done error checking for recvfrom
 
         //check for any messages to send
-        if(send_msg_q_.size() != 0){
-            mtx_.lock();
-            std::string msg = send_msg_q_.front();
-            std::string ip = send_ip_q_.front();
-            send_msg_q_.pop();
-            send_ip_q_.pop();
-            mtx_.unlock();
-
+        if(sending_queue_.getToSend(ip, msg) != 0){
 
             send_addr.setIpAddress(ip);
 
@@ -127,3 +118,67 @@ void UdpCommunicationHandler::run(){
         }
     }
 }
+
+int SendingQueue::getToSend(std::string &ip, std::string &msg){
+    mtx_.lock();
+    int ret = send_msg_q_.size();
+    if(ret != 0){
+        ip = send_ip_q_.front();
+        msg = send_msg_q_.front();
+        send_ip_q_.pop();
+        send_msg_q_.pop();
+    }
+    mtx_.unlock();
+    return ret;
+}
+
+void SendingQueue::pushToSend(std::string ip, std::string msg){
+    mtx_.lock();
+    send_ip_q_.push(ip);
+    send_msg_q_.push(msg);
+    mtx_.unlock();
+}
+
+/*
+TcpCommunicationHandler::TcpCommunicationHandler(uint32_t port,
+    std::function<void(std::string, std::string)> accept_callback)
+    :socket_(PROTOCOL_TCP), port_(port), accept_callback_(accept_callback){
+
+    thd_ = std::thread(std::bind(TcpCommunicationHandler::run), this);    
+}
+
+void TcpCommunicationHandler::run(){
+    InetSocketAddress listen_addr(port_);
+    int bind_ret = bind(socket_.getFd(), listen_addr.getAddrPtr(), 
+        listen_addr.getAddrSize());
+    
+    if(bind_ret == -1)
+        throw std::runtime_error("Bind failed");
+
+    _setNonBlocking(socket_.getFd());
+
+    int listen_ret = listen(socket_.getFd(), MAX_TCP_CONNECTIONS);
+
+    if(listen_ret == -1)
+        throw(std::runtime_error("listen init failed"));
+    
+    socklen_t listen_addr_size = listen_addr.getAddrSize();
+    
+    while(true){
+        int accept_ret = accept(socket_.getFd(), listen_addr.getAddrPtr(),
+            &listen_addr_size);
+
+        if(accept_ret != -1){
+            _setNonBlocking(accept_ret);
+            addConnection(accept_ret);
+        }
+
+        checkConnections();
+    }
+}
+
+void TcpCommunicationHandler::addConnection(int fd){
+    TcpConnectionHandler tcp_conn(fd);
+    conn_.push_back(tcp_conn);
+}
+*/
