@@ -94,10 +94,10 @@ void UdpCommunicationHandler::run(){
             //here should be a way to restart UdpHandler::run(),
             //  maybe run() should be in wrapper to catch all exceptions?
 
-            receive_callback_(std::string(ip_address_ch), 
-                std::string(buffer_.data()));
+            _LOG(INFO) << std::string("received: ") + std::string(buffer_.data());
 
-            _LOG(INFO) << std::string("received: ") + std::string(buffer_.data());   
+            receive_callback_(std::string(ip_address_ch), 
+                std::string(buffer_.data()));   
         }
         //here should be done error checking for recvfrom
 
@@ -108,7 +108,7 @@ void UdpCommunicationHandler::run(){
                 (void*)string_to_send_.data(), string_to_send_.length(), 0,
                 addr_send_.getAddrPtr(), addr_send_.getAddrSize());
 
-            something_to_send_flag_ == 0;
+            something_to_send_flag_ = 0;
             mtx_.unlock();
 
             if(send_ret == -1){

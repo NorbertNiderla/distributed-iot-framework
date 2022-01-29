@@ -2,14 +2,18 @@
 
 #include "include/message.hpp"
 #include "include/logger.hpp"
+#include "include/types.hpp"
 
 void MessageHandler::handleMessage(std::string ip_address,
     std::string message){
+    
     _LOG(DEBUG) << "handling message";
+    
     if(!ip_address.compare(waiting_for_response_addr_)){
+        // if waiting for response go here
         std::cout << "[MESSAGE HANDLER] " << message << "\n";
         if(exit_after_response_receive_ == true)
-            throw(std::exception()); //here should be declared my own exception type
+            throw(NeedToExitException()); //here should be throwed my own exception type
     } else {
         // if we are not waiting for response then we are responding
         queueMessage(ip_address, "response");
