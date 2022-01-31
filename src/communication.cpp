@@ -47,6 +47,7 @@ void UdpCommunicationHandler::send(std::string ip_addr, std::string message){
     sending_queue_.pushToSend(ip_addr, message);
 }
 
+
 static void _setNonBlocking(int fd)
 {
     int flags;
@@ -140,7 +141,7 @@ void SendingQueue::pushToSend(std::string ip, std::string msg){
     mtx_.unlock();
 }
 
-/*
+
 TcpCommunicationHandler::TcpCommunicationHandler(uint32_t port,
     std::function<void(std::string, std::string)> accept_callback)
     :socket_(PROTOCOL_TCP), port_(port), accept_callback_(accept_callback){
@@ -168,18 +169,100 @@ void TcpCommunicationHandler::run(){
     while(true){
         int accept_ret = accept(socket_.getFd(), listen_addr.getAddrPtr(),
             &listen_addr_size);
+        
+        if(accept_ret != -1){        
+            //here should be done checking of error type
+            char ip_address_ch[INET_ADDRSTRLEN];
+            
+            const char* conv_ret = inet_ntop(AF_INET,
+                listen_addr.getSAddrPtr(),ip_address_ch, INET_ADDRSTRLEN);
+            
+            if(conv_ret == nullptr){
+                throw(std::runtime_error("Conversion of IpAddress to string interpretation failed"));
+            }
 
-        if(accept_ret != -1){
+            std::string ip(conv_ret);
+
             _setNonBlocking(accept_ret);
-            addConnection(accept_ret);
+            sendAcceptResponse(accept_ret, ip);
+            addConnection(accept_ret, ip);
         }
 
         checkConnections();
     }
 }
 
-void TcpCommunicationHandler::addConnection(int fd){
+void TcpCommunicationHandler::addConnection(int fd, std::string ip){
     TcpConnectionHandler tcp_conn(fd);
-    conn_.push_back(tcp_conn);
+    connections_.push_back(tcp_conn);
 }
-*/
+
+void TcpCommunicationHandler::checkConnections(){
+    //here we are receiving and sending from every connections we
+    // have in connections_ vector
+    InetSocketAddress listen_addr(port_);
+    socklen_t incoming_addr_size = listen_addr.getAddrSize();
+    std::string msg;
+    std::string ip;
+    
+    for(auto &conn : connections_){
+        int recv_ret = recvfrom(conn.getFd(), conn.getBufferData(),
+            conn.getBufferMaxSize(),MSG_WAITALL, listen_addr.getAddrPtr(),
+            &incoming_addr_size);
+
+        if(recv_ret != -1){ 
+            //received something
+            _LOG(DEBUG) << "received something";
+
+            char ip_address_ch[INET_ADDRSTRLEN];
+            
+            const char* conv_ret = inet_ntop(AF_INET,
+                listen_addr.getSAddrPtr(),ip_address_ch, INET_ADDRSTRLEN);
+            
+            if(conv_ret == nullptr){
+                throw(std::runtime_error("Conversion of IpAddress to string interpretation failed"));
+            }
+            //here should be a way to restart UdpHandler::run(),
+            //  maybe run() should be in wrapper to catch all exceptions?
+
+            _LOG(INFO) << std::string("received: ") + std::string(conn.getBufferData());
+
+            receive_callback_(std::string(ip_address_ch), 
+                std::string(conn.getBufferData()));   
+        }
+        //here should be done error checking for recvfrom
+
+        //check for any messages to send
+        if(conn.getToSend(ip, msg) != 0){
+
+            InetSocketAddress send_addr(port_, ip);
+
+            int send_ret = sendto(conn.getFd(),
+                (void*)msg.data(), msg.length(), 0,
+
+            send_addr.getAddrPtr(), send_addr.getAddrSize());
+
+            if(send_ret == -1){
+                throw(std::runtime_error("Sending failed"));
+            }
+    
+            _LOG(DEBUG) << "message sent";
+        }
+    }
+}
+
+void TcpCommunicationHandler::sendAcceptResponse(int fd, std::string ip_addr){
+    
+    InetSocketAddress send_addr(port_, ip_addr);
+    std::string msg("hello");
+    int send_ret = sendto(fd, (void*)msg.data(), msg.length(), 0,
+        send_addr.getAddrPtr(), send_addr.getAddrSize());
+
+    if(send_ret == -1){
+        throw(std::runtime_error("Sending failed"));
+    }
+    
+    _LOG(DEBUG) << "accept response sent";
+}
+
+
