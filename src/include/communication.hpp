@@ -12,51 +12,36 @@
 #define PROTOCOL_UDP  (0)
 #define PROTOCOL_TCP  (1)
 
-class Socket{
-    private:
-        int file_descriptor_;
-    public:
-        Socket(int type);
-        int getFd(){ return file_descriptor_;};
-};
-
-class InetSocketAddress{
-    private:
-        sockaddr_in address_;
-    public:
-        InetSocketAddress();
-        InetSocketAddress(uint32_t port); 
-        InetSocketAddress(uint32_t port, std::string ip_address);
-        void setIpAddress(std::string ip_address);
-        sockaddr* getAddrPtr(){return (sockaddr*)&address_;};
-        void* getSAddrPtr(){return &address_.sin_addr.s_addr;};
-        socklen_t getAddrSize(){return (socklen_t)sizeof(address_);};
-};
-
-class SendingQueue{
+class MessageQueue{
     private:
         std::queue<std::string> send_msg_q_;
         std::queue<std::string> send_ip_q_;
         std::mutex mtx_;
 
     public:
-        int getToSend(std::string &ip, std::string &msg);
-        void pushToSend(std::string ip, std::string msg);
+        int pop(std::string &ip, std::string &msg);
+        void push(std::string ip, std::string msg);
 };
 
 class UdpCommunicationHandler{
     private:
         int port_;
-        Socket socket_;
+        int fd_;
         std::array<char, MESSAGE_BUFFER_LEN> buffer_ = {};
         std::function<void(std::string, std::string)> receive_callback_;
-        SendingQueue sending_queue_;
+        MessageQueue sending_queue_;
 
     public:
         UdpCommunicationHandler(uint32_t port,
             std::function<void(std::string, std::string)> receive_callback);
         void send(std::string ip_addr, std::string message);
         void run();
+        int getPort() const {return port_;};
+        int getFd() const {return fd_;};
+        int checkSendingQueue(std::string &ip, std::string &msg){
+            return sending_queue_.pop(ip, msg);
+        }
+        
 };
 
 #define MAX_TCP_CONNECTIONS (5)
@@ -92,4 +77,3 @@ class TcpConnectionHandler{
         int getToSend(std::string ip, std::string msg){return queue_.getToSend(ip, msg);};
 
 };
-
