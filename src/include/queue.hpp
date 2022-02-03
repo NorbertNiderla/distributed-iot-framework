@@ -2,6 +2,8 @@
 #include <mutex>
 #include <queue>
 
+#include "communication.hpp"
+
 template<typename Element>
 class QueueThreadSafe{
     protected:
@@ -9,7 +11,22 @@ class QueueThreadSafe{
         std::mutex mtx_;
 
     public:
-        QueueThreadSafe();
-        int pop(Element &obj);
-        void push(Element &obj);
+        QueueThreadSafe(){};
+        
+        int pop(Element &obj){
+            mtx_.lock();
+            int ret = queue_.size();
+            if(ret != 0){
+                obj = queue_.front();
+                queue_.pop();
+            }
+            mtx_.unlock();
+            return ret;
+        };
+
+        void push(Element &obj){
+            mtx_.lock();
+            queue_.push(obj);
+            mtx_.unlock();
+        };
 };

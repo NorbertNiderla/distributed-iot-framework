@@ -7,6 +7,7 @@
 
 #include "include/communication.hpp"
 #include "include/logger.hpp"
+#include "include/queue.hpp"
 
 static int socketCreate(int type){
     int fd;
@@ -87,25 +88,20 @@ int receiveFrom(sockaddr_in &listen_addr, int fd, void* buffer, int buffer_size,
     return 0;
 }
 
-/*
-    wrapper for sendto function
-    checking handlers sending queue and send it to port and fd of handler
-*/
-template <typename CommunicationHandler>
-void checkAndSend(CommunicationHandler &handler){
-    std::string ip;
-    std::string msg;
-    if(handler.checkSendingQueue(ip, msg) != 0){
-        sockaddr_in addr = socketAddressCreate(handler.getPort(), ip);
+void checkAndSend(UdpCommunicationHandler &handler){
+    udp_message_t message;
+    if(handler.checkSendingQueue(message) != 0){
+        sockaddr_in addr = socketAddressCreate(handler.getPort(), message.ip);
 
-        int send_ret = sendto(handler.getFd(), (void*)msg.data(), msg.length(), 0,
+        int send_ret = sendto(handler.getFd(), (void*)message.msg.data(), message.msg.length(), 0,
             (sockaddr*)&addr, sizeof(addr));
 
         if(send_ret == -1){
             throw(std::runtime_error("Sending failed"));
         }
     
-        _LOG(DEBUG) << std::string("message sent ") + ip + std::string(" ") + msg;
+        _LOG(DEBUG) << std::string("message sent ") + message.ip + 
+            std::string(" ") + message.msg;
     }
 }
 
@@ -114,8 +110,9 @@ UdpCommunicationHandler::UdpCommunicationHandler(uint32_t port,
         : receive_callback_(receive_callback), port_(port),
             fd_(socketCreate(PROTOCOL_UDP)){}
 
-void UdpCommunicationHandler::send(std::string ip_addr, std::string message){
-    sending_queue_.push(ip_addr, message);
+void UdpCommunicationHandler::send(std::string ip_addr, std::string msg){
+    udp_message_t message = {.msg = msg, .ip = ip_addr};
+    sending_queue_.push(message);
 }
 
 void UdpCommunicationHandler::run(){
@@ -137,24 +134,4 @@ void UdpCommunicationHandler::run(){
         
         checkAndSend(*this);
     }
-}
-
-int MessageQueue::pop(std::string &ip, std::string &msg){
-    mtx_.lock();
-    int ret = send_msg_q_.size();
-    if(ret != 0){
-        ip = send_ip_q_.front();
-        msg = send_msg_q_.front();
-        send_ip_q_.pop();
-        send_msg_q_.pop();
-    }
-    mtx_.unlock();
-    return ret;
-}
-
-void MessageQueue::push(std::string ip, std::string msg){
-    mtx_.lock();
-    send_ip_q_.push(ip);
-    send_msg_q_.push(msg);
-    mtx_.unlock();
 }

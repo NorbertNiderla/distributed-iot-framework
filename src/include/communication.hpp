@@ -6,7 +6,8 @@
 #include <functional>
 #include <thread>
 #include <mutex>
-#include <queue>
+
+#include "queue.hpp"
 
 #define MESSAGE_BUFFER_LEN (100)
 #define PROTOCOL_UDP  (0)
@@ -23,13 +24,18 @@ class MessageQueue{
         void push(std::string ip, std::string msg);
 };
 
+typedef struct{
+    std::string msg;
+    std::string ip;
+}udp_message_t;
+
 class UdpCommunicationHandler{
     private:
         int port_;
         int fd_;
         std::array<char, MESSAGE_BUFFER_LEN> buffer_ = {};
         std::function<void(std::string, std::string)> receive_callback_;
-        MessageQueue sending_queue_;
+        QueueThreadSafe<udp_message_t> sending_queue_;
 
     public:
         UdpCommunicationHandler(uint32_t port,
@@ -38,8 +44,8 @@ class UdpCommunicationHandler{
         void run();
         int getPort() const {return port_;};
         int getFd() const {return fd_;};
-        int checkSendingQueue(std::string &ip, std::string &msg){
-            return sending_queue_.pop(ip, msg);
+        int checkSendingQueue(udp_message_t &message){
+            return sending_queue_.pop(message);
         }
         
 };
