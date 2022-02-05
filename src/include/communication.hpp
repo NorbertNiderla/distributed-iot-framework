@@ -6,6 +6,7 @@
 #include <functional>
 #include <thread>
 #include <mutex>
+#include <atomic>
 
 #include "queue.hpp"
 
@@ -36,6 +37,7 @@ class UdpCommunicationHandler{
         std::array<char, MESSAGE_BUFFER_LEN> buffer_ = {};
         std::function<void(std::string, std::string)> receive_callback_;
         QueueThreadSafe<udp_message_t> sending_queue_;
+        std::atomic<bool> stop_; 
 
     public:
         UdpCommunicationHandler(uint32_t port,
@@ -47,5 +49,6 @@ class UdpCommunicationHandler{
         int checkSendingQueue(udp_message_t &message){
             return sending_queue_.pop(message);
         }
+        void stopRunning() {stop_ = true;};
         
 };

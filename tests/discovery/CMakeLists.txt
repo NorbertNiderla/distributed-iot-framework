@@ -2,9 +2,10 @@ cmake_minimum_required(VERSION 3.10)
 
 project(comm_app)
 
-include_directories(./../src/include/)
+include_directories(./../../src/include/)
+link_directories(./../../src/include/)
 
-set (SRC_PATH ./../src/)
+set (SRC_PATH ./../../src/)
 set (SOURCES
     ${SRC_PATH}logger.cpp
     ${SRC_PATH}protocol.cpp

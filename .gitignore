@@ -33,3 +33,4 @@
 .vscode/settings.json
 
 example/build/
+tests/discovery/build/
