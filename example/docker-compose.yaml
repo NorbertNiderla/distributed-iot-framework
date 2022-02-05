@@ -4,7 +4,7 @@ services:
     container_name: listener
     image: iot_app:latest
     tty: true 
-    command: answering
+    command: -e 2
     networks:
       static-network:
         ipv4_address: 192.168.0.2
@@ -14,7 +14,7 @@ services:
       - receiver
     image: iot_app:latest
     tty: true
-    command: single 192.168.0.2
+    command: -e 2 -d 192.168.0.2
     networks:
       static-network:
         ipv4_address: 192.168.0.3

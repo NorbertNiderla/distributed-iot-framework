@@ -2,6 +2,10 @@
 #include <iostream>
 #include <functional>
 #include <thread>
+#include <unistd.h>
+#include <signal.h>
+#include <thread>
+#include <chrono>
 
 #include "communication.hpp"
 #include "logger.hpp"
@@ -9,48 +13,55 @@
 #include "types.hpp"
 
 #define DEFAULT_PORT  (6300)
+#define PROGRAM_MODE_DEFAULT 0
+#define PROGRAM_MODE_DISCOVERY 1
 
-#define PROGRAM_MODE_ANSWERING      (0)
-#define PROGRAM_MODE_SINGLE_SEND    (1)
-
-static unsigned program_mode;
-static std::string default_ip_address;
+static int program_mode = PROGRAM_MODE_DEFAULT;
+static std::vector<std::string> discovery_ip_address;
+static std::vector<std::thread> threads;
+static int timeout_exit_seconds = 0;
 
 bool static parseInputArguments(int argc, char* argv[]){
-    switch(argc){
-        case 1:
-            _LOG(ERROR) << "Not enough input arguments";
-            break;
-        case 2:
-            if(!std::string("answering").compare(std::string(argv[1]))){
-                program_mode = PROGRAM_MODE_ANSWERING;
-                return 0;
-            }
-            _LOG(ERROR) << "Invalid input arguments";
-            break;
-        case 3:
-            if(!std::string("single").compare(std::string(argv[1]))){
-                program_mode = PROGRAM_MODE_SINGLE_SEND;
-                default_ip_address = std::string(argv[2]);
-                return 0;
-            }
-            _LOG(ERROR) << "Invalid input arguments";
-            break;
-        default:
-            _LOG(ERROR) << "Too many input arguments";
-            break;
-    }  
-    return 1;
+    int c;
+    opterr = 0;
+    std::string ip_str;
+    std::string ip_delimiter(",");
+    size_t pos;
+
+    while((c = getopt(argc, argv, "e:d:")) != -1){
+        switch(c)
+        {
+            case 'e':
+                timeout_exit_seconds = std::stoi(std::string(optarg));
+                break;
+            case 'd':
+                program_mode = PROGRAM_MODE_DISCOVERY;
+                ip_str = std::string(optarg);
+                while((pos = ip_str.find(ip_delimiter)) != std::string::npos){
+                    std::string token = ip_str.substr(0, pos);
+                    ip_str.erase(0, pos + ip_delimiter.length());
+                    discovery_ip_address.push_back(token);
+                }
+                discovery_ip_address.push_back(ip_str);
+                break;
+            default:
+                break;
+        }
+    }
+
+    for(int index = optind; index < argc; index++)
+        printf ("Non-option argument %s\n", argv[index]);
+    
+    return 0;
 }
 
 int main(int argc, char* argv[]){
     
     logger.set_logging_level(INFO);
-
     if(parseInputArguments(argc, argv))
        return 1;
-
     _LOG(INFO) << "starting app";
+    
     try{
         MessageHandler msg_handler;
         
@@ -69,13 +80,19 @@ int main(int argc, char* argv[]){
         std::thread thread_udp_communication(
             std::bind(&UdpCommunicationHandler::run, &udp_handler));
 
-        if(program_mode == PROGRAM_MODE_ANSWERING){
-        } else if(program_mode == PROGRAM_MODE_SINGLE_SEND){
-            msg_handler.setWaitForResponse(true);
-            msg_handler.queueMessage(default_ip_address, "default_message");
-            msg_handler.queueMessage(default_ip_address, "default_message_2");
+        
+        if(program_mode == PROGRAM_MODE_DEFAULT){
+        } else if(program_mode == PROGRAM_MODE_DISCOVERY){
+            protocol_msg_t msg = {.type = DISCOVERY};
+            for(auto &ip : discovery_ip_address)
+                msg_handler.queueMessage(ip, msg);
         }
         
+        if(timeout_exit_seconds != 0){
+            std::this_thread::sleep_for(std::chrono::seconds(timeout_exit_seconds));
+            udp_handler.stopRunning();
+        }
+
         thread_udp_communication.join();
     }
     catch(const NeedToExitException &ex){
