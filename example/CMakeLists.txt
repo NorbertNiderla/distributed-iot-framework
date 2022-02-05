@@ -7,7 +7,7 @@ include_directories(./../src/include/)
 set (SRC_PATH ./../src/)
 set (SOURCES
     ${SRC_PATH}logger.cpp
-    ${SRC_PATH}message.cpp
+    ${SRC_PATH}protocol.cpp
     ${SRC_PATH}communication.cpp
     main.cpp 
     )

@@ -5,7 +5,7 @@
 
 #include "communication.hpp"
 #include "logger.hpp"
-#include "message.hpp"
+#include "protocol.hpp"
 #include "types.hpp"
 
 #define DEFAULT_PORT  (6300)
@@ -16,7 +16,7 @@
 static unsigned program_mode;
 static std::string default_ip_address;
 
-bool static _parse_input_arguments(int argc, char* argv[]){
+bool static parseInputArguments(int argc, char* argv[]){
     switch(argc){
         case 1:
             _LOG(ERROR) << "Not enough input arguments";
@@ -47,7 +47,7 @@ int main(int argc, char* argv[]){
     
     logger.set_logging_level(INFO);
 
-    if(_parse_input_arguments(argc, argv))
+    if(parseInputArguments(argc, argv))
        return 1;
 
     _LOG(INFO) << "starting app";

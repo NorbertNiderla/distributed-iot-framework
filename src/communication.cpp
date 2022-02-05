@@ -54,12 +54,6 @@ static void socketSetNonBlocking(int fd)
     }
 }  
 
-/* 
-    recvfrom wrapper for receiving on socket
-    modify ip and buffer on succesful receive
-    TODO: checking recv ret error types
-    when received something return 1, otherwise return 0
-*/
 int receiveFrom(sockaddr_in &listen_addr, int fd, void* buffer, int buffer_size,
     std::string &ip){
     
@@ -80,7 +74,7 @@ int receiveFrom(sockaddr_in &listen_addr, int fd, void* buffer, int buffer_size,
 
         ip = std::string(ip_address_ch);
 
-        _LOG(INFO) << std::string("received: ") + ip + " " + std::string((char*)buffer);
+        _LOG(DEBUG) << std::string("received: ") + ip + " " + std::string((char*)buffer);
 
         return 1;
     }
@@ -108,7 +102,8 @@ void checkAndSend(UdpCommunicationHandler &handler){
 UdpCommunicationHandler::UdpCommunicationHandler(uint32_t port,
     std::function<void(std::string, std::string)> receive_callback)
         : receive_callback_(receive_callback), port_(port),
-            fd_(socketCreate(PROTOCOL_UDP)){}
+            fd_(socketCreate(PROTOCOL_UDP)), stop_(false){
+}
 
 void UdpCommunicationHandler::send(std::string ip_addr, std::string msg){
     udp_message_t message = {.msg = msg, .ip = ip_addr};
@@ -133,5 +128,8 @@ void UdpCommunicationHandler::run(){
             receive_callback_(ip, std::string(buffer_.data()));   
         
         checkAndSend(*this);
+
+        if(stop_ == true)
+            break;
     }
 }
