@@ -34,3 +34,4 @@
 
 example/build/
 tests/discovery/build/
+tests/known_nodes/build/
