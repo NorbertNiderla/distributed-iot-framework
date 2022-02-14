@@ -1,23 +1,15 @@
-# IoT Communication App
+# Distributed IoT Framework
 
-## Features
-* Communication App Sources
-* Multi-app Contenerized Model
+The repository is work in progress. Any feedback is appreciated. There is no uniform example of how it works at the moment. The elements of the framework can be seen using tests in `tests` directory. Goal is to create framework which can be used as foundation of distributed application without any centralised elements.
 
-### Communication App
-Source code is stored in `src`. It contains logging class, UDP communication handler and simple message handler. Program is now based on UDP protocol with sending and non-blocking packet receiving capabilities on same thread. Message handler is programmed to respond to incoming packets, and can send packets by itself.
+## Architecture
 
-### Multi-app Contenerized Model
-Example with two apps working in Docker environment simultaneously is  stored in `example/` directory. Program is compiled on host machine, in next step Docker Image with Communication App is built with `Dockerfile`. With `docker-compose.yaml` network is generated where every node is started with image from previous step.
+### Communication
+Nodes are communicating through always open UDP sockets. Port 6300 is in use. Nodes see each others as IPv4 addresses.
 
-In order to run it, Cmake build files must be generated:
-```bash
-cd example/
-mkdir build
-cd build/
-cmake ../
-cd ../
-```
+### Protocol
+Nodes communicate with each other using simple flag-based protocol, encapsulated in UDP packets.
 
-#### Automation
-Script `run_network.sh` can be run in order to build program and set up network in Docker environment.
+## Implementation
+Source code is stored in `src`. It contains logging class, UDP communication handler and simple message handler. Program is now based on UDP protocol with sending and non-blocking packet receiving capabilities on same thread. Message handler is programmed to read incoming packet and respond.
+
