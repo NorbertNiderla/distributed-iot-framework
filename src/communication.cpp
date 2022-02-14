@@ -28,18 +28,13 @@ static sockaddr_in socketAddressCreate(int port){
     return address;
 }
 
-static void socketAddressSetIp(std::string ip_address, sockaddr_in* address){
-    int ret = inet_pton(AF_INET, ip_address.c_str(), &(address->sin_addr.s_addr));
-    //inet_pton() already converts address into net byte order
-    if(ret != 1){
-        //error checking should be more wide here
-        throw(std::invalid_argument("Invalid IpAddress"));
-    }
+static void socketAddressSetIp(IPv4 ip, sockaddr_in* address){
+    address->sin_addr.s_addr = ip.toNetByteOrder();
 }
 
-static sockaddr_in socketAddressCreate(int port, std::string ip_address){
+static sockaddr_in socketAddressCreate(int port, IPv4 ip){
     sockaddr_in addr = socketAddressCreate(port);
-    socketAddressSetIp(ip_address, &addr);
+    socketAddressSetIp(ip, &addr);
     return addr;
 }
 
@@ -55,7 +50,7 @@ static void socketSetNonBlocking(int fd)
 }  
 
 int receiveFrom(sockaddr_in &listen_addr, int fd, void* buffer, int buffer_size,
-    std::string &ip){
+    IPv4 &ip){
     
     socklen_t incoming_addr_size = sizeof(listen_addr);
     int recv_ret = recvfrom(fd, buffer, buffer_size,MSG_WAITALL,
@@ -63,18 +58,9 @@ int receiveFrom(sockaddr_in &listen_addr, int fd, void* buffer, int buffer_size,
 
     if(recv_ret != -1){ 
         _LOG(DEBUG) << "received something";
+        ip.readFromNetByteOrder(listen_addr.sin_addr.s_addr);
 
-        char ip_address_ch[INET_ADDRSTRLEN];
-        const char* conv_ret = inet_ntop(AF_INET, &listen_addr.sin_addr.s_addr,
-            ip_address_ch, INET_ADDRSTRLEN);
-            
-        if(conv_ret == nullptr){
-            throw(std::runtime_error("Conversion of IpAddress to string interpretation failed"));
-        }
-
-        ip = std::string(ip_address_ch);
-
-        _LOG(DEBUG) << std::string("received: ") + ip + " " + std::string((char*)buffer);
+        _LOG(DEBUG) << std::string("received: ") + ip.toString() + " " + std::string((char*)buffer);
 
         return 1;
     }
@@ -94,19 +80,19 @@ void checkAndSend(UdpCommunicationHandler &handler){
             throw(std::runtime_error("Sending failed"));
         }
     
-        _LOG(DEBUG) << std::string("message sent ") + message.ip + 
+        _LOG(DEBUG) << std::string("message sent ") + message.ip.toString() + 
             std::string(" ") + message.msg;
     }
 }
 
 UdpCommunicationHandler::UdpCommunicationHandler(uint32_t port,
-    std::function<void(std::string, std::string)> receive_callback)
+    std::function<void(IPv4, std::string)> receive_callback)
         : receive_callback_(receive_callback), port_(port),
             fd_(socketCreate(PROTOCOL_UDP)), stop_(false){
 }
 
-void UdpCommunicationHandler::send(std::string ip_addr, std::string msg){
-    udp_message_t message = {.msg = msg, .ip = ip_addr};
+void UdpCommunicationHandler::send(IPv4 ip, std::string msg){
+    udp_message_t message = {.msg = msg, .ip = ip};
     sending_queue_.push(message);
 }
 
@@ -122,7 +108,7 @@ void UdpCommunicationHandler::run(){
     socketSetNonBlocking(fd_);
 
     std::string msg;
-    std::string ip;
+    IPv4 ip;
     while(true){
         if(receiveFrom(listen_addr, fd_, buffer_.data(), buffer_.max_size(),ip) == 1)
             receive_callback_(ip, std::string(buffer_.data()));   

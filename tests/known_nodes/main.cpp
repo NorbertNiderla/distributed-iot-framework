@@ -11,13 +11,14 @@
 #include "logger.hpp"
 #include "protocol.hpp"
 #include "types.hpp"
+#include "ip_v4.hpp"
 
 #define DEFAULT_PORT  (6300)
 #define PROGRAM_MODE_DEFAULT 0
 #define PROGRAM_MODE_DISCOVERY 1
 
 static int program_mode = PROGRAM_MODE_DEFAULT;
-static std::vector<std::string> discovery_ip_address;
+static std::vector<IPv4> discovery_ip_address;
 static std::vector<std::thread> threads;
 static int timeout_exit_seconds = 0;
 
@@ -40,9 +41,9 @@ bool static parseInputArguments(int argc, char* argv[]){
                 while((pos = ip_str.find(ip_delimiter)) != std::string::npos){
                     std::string token = ip_str.substr(0, pos);
                     ip_str.erase(0, pos + ip_delimiter.length());
-                    discovery_ip_address.push_back(token);
+                    discovery_ip_address.push_back(IPv4(token));
                 }
-                discovery_ip_address.push_back(ip_str);
+                discovery_ip_address.push_back(IPv4(ip_str));
                 break;
             default:
                 break;
@@ -65,13 +66,13 @@ int main(int argc, char* argv[]){
     try{
         MessageHandler msg_handler;
         
-        std::function<void(std::string,std::string)> cb_rx = 
+        std::function<void(IPv4,std::string)> cb_rx = 
             std::bind(&MessageHandler::handleMessage, &msg_handler,
                 std::placeholders::_1, std::placeholders::_2);
         
         UdpCommunicationHandler udp_handler(DEFAULT_PORT, cb_rx);
         
-        std::function<void(std::string,std::string)> cb_tx = 
+        std::function<void(IPv4,std::string)> cb_tx = 
             std::bind(&UdpCommunicationHandler::send,
                 &udp_handler, std::placeholders::_1, std::placeholders::_2);
         

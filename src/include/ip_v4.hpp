@@ -28,10 +28,7 @@ class IPv4{
         //converts uint32_t representation of ipv4 in network byte order into 
         //uint8_t buffer in standard order
         IPv4(uint32_t ip){
-            address[0] = ip & 0xFF;
-            address[1] = (ip >> 8) & 0xFF;
-            address[2] = (ip >> 16) & 0xFF;
-            address[3] = (ip >> 24) & 0xFF;
+            readFromNetByteOrder(ip);
         }
 
         std::string toString() const{
@@ -50,5 +47,12 @@ class IPv4{
             ip |= (uint32_t)address[0];
 
             return ip;
+        }
+
+        inline const void readFromNetByteOrder(uint32_t ip) noexcept{
+            address[0] = ip & 0xFF;
+            address[1] = (ip >> 8) & 0xFF;
+            address[2] = (ip >> 16) & 0xFF;
+            address[3] = (ip >> 24) & 0xFF;
         }
 };

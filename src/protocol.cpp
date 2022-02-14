@@ -7,9 +7,9 @@
 #include "include/logger.hpp"
 #include "include/types.hpp"
 
-void MessageHandler::addKnownNode(std::string ip_addr){
-    known_nodes_.push_back(ip_addr);
-    _LOG(DEBUG) << "new known node " + ip_addr;
+void MessageHandler::addKnownNode(IPv4 ip){
+    known_nodes_.push_back(ip);
+    _LOG(DEBUG) << "new known node " + ip.toString();
 }
 
 void MessageHandler::parseMessageType(std::string &payload, protocol_msg_t &msg){
@@ -30,8 +30,7 @@ void MessageHandler::parseMessageNewNodes(std::string payload){
     }
 }
 
-void MessageHandler::handleMessage(std::string ip_address,
-    std::string message){
+void MessageHandler::handleMessage(IPv4 ip, std::string message){
     
     protocol_msg_t msg;
     protocol_msg_t msg_response;
@@ -42,18 +41,18 @@ void MessageHandler::handleMessage(std::string ip_address,
     switch(msg.type){
         case DISCOVERY:
             msg_response.type = DISCOVERY_ACK;
-            queueMessage(ip_address, msg_response);
+            queueMessage(ip, msg_response);
             break;
         case DISCOVERY_ACK:
-            _LOG(INFO) << "received DISCOVERY_ACK " + ip_address;
+            _LOG(INFO) << "received DISCOVERY_ACK " + ip.toString();
             break;
         case GET_KNOWN_NODES:
             for(auto &ip_addr : known_nodes_)
-                known_nodes = known_nodes + ip_addr + " ";
+                known_nodes = known_nodes + ip.toString() + " ";
             msg_response.type = GET_KNOWN_NODES_RESPONSE;
             msg_response.data = known_nodes;
-            queueMessage(ip_address, msg_response);
-            addKnownNode(ip_address);
+            queueMessage(ip, msg_response);
+            addKnownNode(ip);
             break;
         case GET_KNOWN_NODES_RESPONSE:
             parseMessageNewNodes(message);
@@ -64,13 +63,13 @@ void MessageHandler::handleMessage(std::string ip_address,
 }
 
 void MessageHandler::setSendFunction(
-    std::function<void(std::string, std::string)> func){
+    std::function<void(IPv4, std::string)> func){
         send_function_ = func;
 }
 
-void MessageHandler::queueMessage(std::string ip_address,
+void MessageHandler::queueMessage(IPv4 ip,
     protocol_msg_t message){
     
-    send_function_(ip_address, message.toString());
+    send_function_(ip, message.toString());
     _LOG(DEBUG) << "queued up message";
 }

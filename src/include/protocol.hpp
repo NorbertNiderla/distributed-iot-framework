@@ -6,6 +6,7 @@
 #include <string>
 
 #include "logger.hpp"
+#include "ip_v4.hpp"
 
 typedef enum{
     DISCOVERY = 0,
@@ -25,14 +26,14 @@ typedef struct{
 
 class MessageHandler{
     private:
-        std::function<void(std::string, std::string)> send_function_ = nullptr;
-        std::vector<std::string> known_nodes_;
+        std::function<void(IPv4, std::string)> send_function_ = nullptr;
+        std::vector<IPv4> known_nodes_;
     public:
         MessageHandler(){};
-        void handleMessage(std::string ip_address, std::string message);
-        void queueMessage(std::string ip_address, protocol_msg_t msg);
-        void setSendFunction(std::function<void(std::string, std::string)> func);
+        void handleMessage(IPv4 ip, std::string message);
+        void queueMessage(IPv4 ip, protocol_msg_t msg);
+        void setSendFunction(std::function<void(IPv4, std::string)> func);
         void parseMessageType(std::string &payload, protocol_msg_t &msg);
         void parseMessageNewNodes(std::string payload);
-        void addKnownNode(std::string ip_addr);
+        void addKnownNode(IPv4 ip);
 };
